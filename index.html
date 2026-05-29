@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="考核表">
+<meta name="mobile-web-app-capable" content="yes">
+<title>考核表</title>
+<style>
+:root{
+  --bg:#F2F2F7;
+  --card:#FFFFFF;
+  --border:#E5E5EA;
+  --label:#8E8E93;
+  --accent:#007AFF;
+  --accent-bg:#E8F0FE;
+  --green:#34C759;
+  --red:#FF3B30;
+  --orange:#FF9500;
+  --gold:#FFCC00;
+  --gold-bg:#FFF9E6;
+  --nav-h:56px;
+  --header-h:52px;
+  --safe-b:env(safe-area-inset-bottom,16px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:15px;color:#1C1C1E;background:var(--bg)}
+button,input,textarea{font-family:inherit;font-size:inherit}
+
+/* ── APP SHELL ── */
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+
+/* header */
+.app-header{
+  height:var(--header-h);
+  background:var(--card);
+  border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  flex-shrink:0;
+  position:relative;
+  padding-top:env(safe-area-inset-top,0px);
+}
+.hdr-title{font-size:17px;font-weight:600;color:#1C1C1E;position:absolute;left:50%;transform:translateX(-50%)}
+.hdr-btn{background:none;border:none;cursor:pointer;font-size:15px;color:var(--accent);padding:6px 4px;touch-action:manipulation;min-width:44px}
+.hdr-btn.edit-on{color:var(--green);font-weight:700}
+.hdr-save{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.hdr-month{display:flex;align-items:center;gap:8px}
+.hdr-month-label{font-size:15px;font-weight:600;min-width:88px;text-align:center}
+.nav-arrow{background:none;border:none;cursor:pointer;font-size:20px;color:var(--accent);padding:4px 8px;touch-action:manipulation;line-height:1}
+
+/* scroll area */
+.page-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 12px 0}
+
+/* bottom nav */
+.bottom-nav{
+  height:calc(var(--nav-h) + var(--safe-b));
+  background:var(--card);
+  border-top:0.5px solid var(--border);
+  display:flex;
+  flex-shrink:0;
+  padding-bottom:var(--safe-b);
+}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;gap:3px;padding:6px 0}
+.nav-icon{font-size:22px;line-height:1}
+.nav-label{font-size:10px;font-weight:500;color:var(--label)}
+.nav-item.active .nav-icon{filter:none}
+.nav-item.active .nav-label{color:var(--accent);font-weight:700}
+.nav-item:active{opacity:0.6}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+
+/* person row */
+.person-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 12px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.person-scroll::-webkit-scrollbar{display:none}
+.pcard{flex-shrink:0;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;background:var(--card);text-align:center;cursor:pointer;touch-action:manipulation;min-width:72px}
+.pcard.active{background:var(--accent-bg);border-color:var(--accent)}
+.pcard-name{font-size:13px;font-weight:600;color:#1C1C1E}
+.pcard.active .pcard-name{color:var(--accent)}
+.pcard-pts{font-size:13px;font-weight:700;margin-top:2px}
+.pcard-pts.pos{color:var(--green)}
+.pcard-pts.neg{color:var(--red)}
+.pcard-pts.neu{color:var(--label)}
+
+/* calendar */
+.cal-card{background:var(--card);border-radius:12px;margin-bottom:10px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-hdr{text-align:center;font-size:10px;font-weight:600;color:var(--label);padding:3px 0}
+.cal-hdr.sun{color:var(--red)}
+.cal-hdr.sat{color:var(--accent)}
+.vcell{border-radius:8px;padding:4px 2px 12px;min-height:62px;background:var(--card);cursor:pointer;touch-action:manipulation;position:relative;border:1.5px solid transparent}
+.vcell:active{background:#F0F4FF}
+.vcell.empty{pointer-events:none}
+.vcell.sel{border-color:var(--accent);background:var(--accent-bg)}
+.vcell.todaymark{border-color:var(--accent);border-width:2px}
+.vcell .dnum{font-size:11px;font-weight:700;display:block;text-align:center;margin-bottom:2px}
+.vcell.sun .dnum{color:var(--red)}
+.vcell.sat .dnum{color:var(--accent)}
+.vcell.om .dnum{color:#C7C7CC}
+.psr{display:flex;justify-content:space-between;align-items:center;font-size:9px;padding:1px 2px}
+.psr-n{color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44px}
+.psr-v{font-weight:700}
+.psr-v.pos{color:var(--green)}
+.psr-v.neg{color:var(--red)}
+.psr-v.neu{color:#C7C7CC}
+.today-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
+
+/* day summary */
+.day-sum-card{background:var(--card);border-radius:12px;margin-bottom:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.day-sum-title{font-size:13px;font-weight:600;color:var(--label);margin-bottom:10px}
+.day-sum-row{display:flex;gap:8px;flex-wrap:wrap}
+.ds-box{background:var(--bg);border-radius:10px;padding:10px 14px;text-align:center;min-width:72px;flex:1}
+.ds-name{font-size:11px;color:var(--label)}
+.ds-val{font-size:24px;font-weight:700;margin-top:2px}
+.ds-val.pos{color:var(--green)}
+.ds-val.neg{color:var(--red)}
+.ds-val.neu{color:var(--label)}
+
+/* edit detail */
+.section-card{background:var(--card);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#F8F8F8;border-bottom:0.5px solid var(--border)}
+.sec-name-inp{border:none;background:none;font-size:14px;font-weight:700;color:#1C1C1E;flex:1;padding:0;min-width:0}
+.sec-name-inp:focus{outline:none}
+.sec-acts{display:flex;gap:6px}
+.btn-sm{padding:5px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;background:var(--card);color:#3C3C43;touch-action:manipulation}
+.btn-sm.red{border-color:#FFCCCC;background:#FFF0F0;color:var(--red)}
+.btn-sm:active{opacity:0.7}
+
+.irow{display:flex;align-items:center;padding:10px 14px;border-bottom:0.5px solid var(--border);gap:8px}
+.irow:last-child{border-bottom:none}
+.inum{font-size:11px;color:var(--label);min-width:18px;text-align:center;flex-shrink:0}
+.iname-inp{flex:1;border:none;background:none;font-size:14px;color:#1C1C1E;padding:0;min-width:0}
+.iname-inp:focus{outline:none}
+.sbtngrp{display:flex;gap:3px;flex-shrink:0}
+.sbtn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:500;background:var(--card);color:#3C3C43;touch-action:manipulation;line-height:1}
+.sbtn:active{opacity:0.7}
+.sbtn.ag{background:#D4F5E5;border-color:var(--green);color:#0A6B3A;font-weight:700}
+.sbtn.ao{background:#FFF0C0;border-color:var(--orange);color:#7A4000;font-weight:700}
+.sbtn.ab{background:#FFD5D5;border-color:var(--red);color:#8B0000;font-weight:700}
+.ipts{font-size:14px;font-weight:700;min-width:30px;text-align:right;flex-shrink:0}
+.ipts.pos{color:var(--green)}
+.ipts.neg{color:var(--red)}
+.ipts.neu{color:var(--label)}
+.btn-del{padding:5px 8px;border-radius:7px;border:1px solid #FFCCCC;cursor:pointer;font-size:12px;color:var(--red);background:#FFF0F0;touch-action:manipulation;flex-shrink:0}
+.btn-del:active{opacity:0.7}
+
+.add-sec-row{padding:10px 14px;text-align:center}
+.btn-add-sec{border:1.5px dashed #C7C7CC;border-radius:8px;background:none;color:var(--label);font-size:14px;padding:10px;width:100%;cursor:pointer;touch-action:manipulation}
+.btn-add-sec:active{background:var(--bg)}
+
+.remark-inp{border:none;background:none;font-size:14px;color:#1C1C1E;width:100%;padding:12px 14px;resize:none;font-family:inherit;display:block;border-top:0.5px solid var(--border)}
+.remark-inp:focus{outline:none;background:#FAFAFA}
+
+/* stats bar */
+.stats-bar{display:flex;gap:6px;padding:10px 12px;background:var(--bg);border-radius:12px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.stats-bar::-webkit-scrollbar{display:none}
+.sbox{background:var(--card);border-radius:10px;padding:8px 14px;text-align:center;flex-shrink:0;min-width:72px;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.sbox .sl{font-size:10px;color:var(--label);font-weight:500}
+.sbox .sv{font-size:20px;font-weight:700;margin-top:2px}
+.sv.pos{color:var(--green)}
+.sv.neg{color:var(--red)}
+.sv.neu{color:var(--orange)}
+.sv.gold{color:#C8860A}
+
+/* month stats */
+.month-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px;background:var(--bg);border-radius:12px;margin-bottom:10px}
+.ms-box{background:var(--card);border-radius:10px;padding:8px 6px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.ms-box .sl{font-size:10px;color:var(--label)}
+.ms-box .sv{font-size:18px;font-weight:700;margin-top:2px}
+
+/* ── REWARD PAGE ── */
+.bal-row{display:flex;gap:8px;padding:0 0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.bal-row::-webkit-scrollbar{display:none}
+.bal-box{background:var(--gold-bg);border:1px solid #F0D060;border-radius:10px;padding:10px 16px;text-align:center;flex-shrink:0;min-width:90px}
+.bal-label{font-size:11px;color:#A07800}
+.bal-val{font-size:22px;font-weight:700;color:#C8860A;margin-top:2px}
+.bal-val.spent{color:var(--red)}
+.bal-val.remain{color:var(--green)}
+
+.rw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.rw-card{border:1px solid #E8D080;border-radius:12px;padding:12px;background:#FFFDF0;display:flex;flex-direction:column;gap:8px}
+.rw-card.ec{border-style:dashed}
+.rw-cname{font-size:14px;font-weight:600;color:#1C1C1E}
+.rw-ccost{font-size:12px;color:#C8860A;font-weight:600}
+.rw-name-inp{border:1px solid #E0C050;border-radius:7px;font-size:13px;color:#1C1C1E;padding:6px 9px;width:100%;background:#fff}
+.rw-cost-inp{border:1px solid #E0C050;border-radius:7px;font-size:13px;color:#C8860A;padding:6px 9px;width:100%;background:#fff;font-weight:700}
+.btn-redeem{padding:9px;border-radius:9px;border:1px solid #E0A830;background:#FFE082;color:#7A5000;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;width:100%}
+.btn-redeem:disabled{opacity:0.35;cursor:default}
+.btn-redeem:active{opacity:0.75}
+.btn-add-rw{border:1.5px dashed #E0A830;border-radius:10px;background:none;color:#A07800;font-size:14px;padding:12px;width:100%;cursor:pointer;touch-action:manipulation;margin-bottom:10px;display:block}
+.btn-add-rw:active{background:var(--gold-bg)}
+.btn-del-rw{padding:5px 10px;border:1px solid #FFCCCC;border-radius:7px;background:#FFF0F0;color:var(--red);font-size:12px;cursor:pointer;touch-action:manipulation;width:100%}
+
+/* log list */
+.log-list{display:flex;flex-direction:column;gap:0}
+.log-row{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:0.5px solid var(--border);background:var(--card)}
+.log-row:first-child{border-radius:12px 12px 0 0}
+.log-row:last-child{border-bottom:none;border-radius:0 0 12px 12px}
+.log-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.log-info{flex:1;min-width:0}
+.log-name{font-size:14px;font-weight:600;color:#1C1C1E}
+.log-meta{font-size:12px;color:var(--label);margin-top:2px}
+.log-pts-big{font-size:16px;font-weight:700;color:var(--red);flex-shrink:0;margin-top:2px}
+.log-del{font-size:12px;color:var(--red);padding:4px 8px;border:1px solid #FFCCCC;border-radius:6px;background:#FFF0F0;cursor:pointer;touch-action:manipulation;flex-shrink:0;margin-top:2px}
+.no-log{text-align:center;color:var(--label);font-size:14px;padding:28px 0;background:var(--card);border-radius:12px}
+
+/* section label */
+.sec-label{font-size:13px;font-weight:600;color:var(--label);padding:14px 4px 6px}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;z-index:9000;padding-bottom:0}
+.overlay.center{align-items:center}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;padding:0 0 calc(20px + var(--safe-b));max-height:85vh;overflow-y:auto}
+.sheet-handle{width:36px;height:5px;background:#C7C7CC;border-radius:3px;margin:10px auto 0}
+.sheet-title{font-size:17px;font-weight:700;text-align:center;padding:16px 20px 0}
+.sheet-sub{font-size:13px;color:var(--label);text-align:center;padding:4px 20px 16px;border-bottom:0.5px solid var(--border)}
+.sheet-body{padding:16px 20px}
+.sheet-field{margin-bottom:14px}
+.sf-label{font-size:13px;color:var(--label);margin-bottom:5px}
+.sf-inp{width:100%;border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:16px;font-family:inherit;background:var(--bg)}
+.sf-inp:focus{outline:2px solid var(--accent);background:#fff}
+.sf-inp.pw{letter-spacing:6px;text-align:center}
+.sheet-actions{display:flex;gap:10px;margin-top:6px}
+.btn-ok{flex:1;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.btn-ok.gold{background:var(--gold);color:#7A5000}
+.btn-cancel{flex:1;padding:13px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-size:16px;cursor:pointer;touch-action:manipulation}
+.pw-err{color:var(--red);font-size:13px;text-align:center;min-height:18px;margin-top:4px}
+
+/* toast */
+.toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,30,30,0.9);color:#fff;padding:10px 22px;border-radius:24px;font-size:14px;font-weight:500;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* edit mode top tabs for person */
+.ptab-scroll{display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ptab-scroll::-webkit-scrollbar{display:none}
+.ptab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);cursor:pointer;font-size:13px;font-weight:500;color:#3C3C43;background:var(--card);touch-action:manipulation;display:flex;align-items:center;gap:5px}
+.ptab.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:700}
+.ptab-del{font-size:11px;color:var(--red);background:#FFE5E5;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;line-height:1}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="app-header" id="appHeader">
+    <div class="hdr-month">
+      <button class="nav-arrow" id="btnPrev">‹</button>
+      <span class="hdr-month-label" id="monthLabel"></span>
+      <button class="nav-arrow" id="btnNext">›</button>
+    </div>
+    <span class="hdr-title" id="hdrTitle">每日考核表</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="hdr-btn" id="modeBtn">🔒</button>
+      <button class="hdr-save" id="saveBtn" style="display:none">儲存</button>
+    </div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="page-scroll" id="pageScroll">
+    <div id="pageCal"></div>
+    <div id="pageReward" style="display:none"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="navCal" onclick="switchPage('cal')">
+      <div class="nav-icon">📅</div>
+      <div class="nav-label">日曆考核</div>
+    </div>
+    <div class="nav-item" id="navReward" onclick="switchPage('reward')">
+      <div class="nav-icon">🎁</div>
+      <div class="nav-label">兌換獎勵</div>
+    </div>
+    <div class="nav-item" id="navToday" onclick="goToday()">
+      <div class="nav-icon">⬤</div>
+      <div class="nav-label">今天</div>
+    </div>
+  </div>
+</div>
+
+<!-- PW SHEET -->
+<div class="overlay center" id="pwOverlay" style="display:none">
+  <div class="sheet" style="border-radius:20px;max-width:360px;width:90%">
+    <div class="sheet-title">🔒 編輯模式</div>
+    <div class="sheet-sub">請輸入管理密碼</div>
+    <div class="sheet-body">
+      <div class="sheet-field">
+        <div class="sf-label">密碼</div>
+        <input class="sf-inp pw" type="password" id="pwInput" placeholder="••••••••" maxlength="20">
+      </div>
+      <div class="pw-err" id="pwErr"></div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" id="btnPwCancel">取消</button>
+        <button class="btn-ok" id="btnPwOk">確認</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REDEEM SHEET -->
+<div class="overlay" id="redeemModal" style="display:none">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="mTitle">兌換獎勵</div>
+    <div class="sheet-sub" id="mSub"></div>
+    <div class="sheet-body">
+      <div class="sheet-field">
+        <div class="sf-label">備註（選填）</div>
+        <input class="sf-inp" id="mNote" placeholder="例：本週表現優秀" maxlength="60">
+      </div>
+      <div class="sheet-field">
+        <div class="sf-label">數量</div>
+        <input class="sf-inp" type="number" id="mQty" value="1" min="1" max="99">
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" id="btnMCancel">取消</button>
+        <button class="btn-ok gold" id="btnMOk">確認兌換</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var PW='121823694';
+var SC={good:2,ok:1,bad:-1,none:0};
+var MONTHS=['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+var WDAYS=['日','一','二','三','四','五','六'];
+var today=new Date();
+var Y=today.getFullYear(),M=today.getMonth(),D=today.getDate();
+var curPerson=0,editMode=false,curPage='cal',pendingRi=-1;
+
+var state={
+  persons:[{id:'p0',name:'員工甲'}],
+  data:{},
+  rewards:[
+    {id:'r0',name:'提早下班30分鐘',cost:10},
+    {id:'r1',name:'午餐補貼一次',cost:8},
+    {id:'r2',name:'假日補休一天',cost:20}
+  ],
+  redeemLogs:{}
+};
+
+function uid(){return Math.random().toString(36).slice(2,8)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function mLbl(m){return MONTHS[m]+'月'}
+function dKey(p,y,m,d){return p+'_'+y+'_'+m+'_'+d}
+function pid(){return state.persons[curPerson].id}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function fdow(y,m){return new Date(y,m,1).getDay()}
+
+function defaultSections(){
+  return[
+    {id:uid(),name:'工作績效',items:[
+      {id:uid(),name:'任務完成率',score:'none'},
+      {id:uid(),name:'工作品質',score:'none'},
+      {id:uid(),name:'進度掌控',score:'none'}
+    ]},
+    {id:uid(),name:'工作態度',items:[
+      {id:uid(),name:'出勤狀況',score:'none'},
+      {id:uid(),name:'積極主動',score:'none'}
+    ]},
+    {id:uid(),name:'團隊合作',items:[
+      {id:uid(),name:'溝通協調',score:'none'},
+      {id:uid(),name:'協助同事',score:'none'}
+    ]}
+  ];
+}
+function getDayData(p,y,m,d){
+  var k=dKey(p,y,m,d);
+  if(!state.data[k])state.data[k]={sections:defaultSections(),remark:''};
+  return state.data[k];
+}
+function hasDayData(p,y,m,d){return !!state.data[dKey(p,y,m,d)]}
+function calcScore(p,y,m,d){
+  if(!hasDayData(p,y,m,d))return null;
+  var t=0,s=0;
+  (state.data[dKey(p,y,m,d)].sections||[]).forEach(function(sec){
+    (sec.items||[]).forEach(function(it){if(it.score&&it.score!=='none'){s++;t+=SC[it.score]||0;}});
+  });
+  return{total:t,scored:s};
+}
+function curDD(){return getDayData(pid(),Y,M,D)}
+function totalEarned(p){
+  var t=0;
+  Object.keys(state.data).forEach(function(k){
+    if(k.indexOf(p+'_')!==0)return;
+    (state.data[k].sections||[]).forEach(function(s){
+      (s.items||[]).forEach(function(it){if(it.score&&it.score!=='none')t+=SC[it.score]||0;});
+    });
+  });
+  return t;
+}
+function totalSpent(p){return(state.redeemLogs[p]||[]).reduce(function(a,l){return a+l.cost*l.qty;},0);}
+function balance(p){return totalEarned(p)-totalSpent(p);}
+
+// save/load
+function saveAll(){
+  var ta=document.getElementById('remarkTA');
+  if(ta)curDD().remark=ta.value;
+  try{localStorage.setItem('dpr_app',JSON.stringify(state));showToast('已儲存 ✓');}
+  catch(e){showToast('儲存失敗');}
+}
+function loadSaved(){
+  try{var s=localStorage.getItem('dpr_app');if(s)state=JSON.parse(s);}catch(e){}
+  if(!state.rewards)state.rewards=[];
+  if(!state.redeemLogs)state.redeemLogs={};
+  Object.keys(state.data||{}).forEach(function(k){
+    (state.data[k].sections||[]).forEach(function(sec){
+      (sec.items||[]).forEach(function(it){if(!it.score)it.score='none';});
+    });
+  });
+}
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2200);
+}
+
+// pw
+document.getElementById('modeBtn').addEventListener('click',function(){editMode?exitEdit():openPw();});
+document.getElementById('btnPwOk').addEventListener('click',checkPw);
+document.getElementById('pwInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
+document.getElementById('btnPwCancel').addEventListener('click',closePw);
+function openPw(){
+  document.getElementById('pwOverlay').style.display='flex';
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').textContent='';
+  setTimeout(function(){document.getElementById('pwInput').focus();},100);
+}
+function closePw(){document.getElementById('pwOverlay').style.display='none';}
+function checkPw(){
+  if(document.getElementById('pwInput').value===PW){closePw();enterEdit();}
+  else{document.getElementById('pwErr').textContent='密碼錯誤，請再試一次';document.getElementById('pwInput').value='';document.getElementById('pwInput').focus();}
+}
+function enterEdit(){
+  editMode=true;
+  document.getElementById('modeBtn').textContent='✏️';
+  document.getElementById('modeBtn').className='hdr-btn edit-on';
+  document.getElementById('saveBtn').style.display='';
+  render();
+}
+function exitEdit(){
+  var ta=document.getElementById('remarkTA');
+  if(ta)curDD().remark=ta.value;
+  editMode=false;
+  document.getElementById('modeBtn').textContent='🔒';
+  document.getElementById('modeBtn').className='hdr-btn';
+  document.getElementById('saveBtn').style.display='none';
+  render();
+}
+document.getElementById('saveBtn').addEventListener('click',saveAll);
+
+// nav
+document.getElementById('btnPrev').addEventListener('click',function(){M--;if(M<0){M=11;Y--;}D=1;render();});
+document.getElementById('btnNext').addEventListener('click',function(){M++;if(M>11){M=0;Y++;}D=1;render();});
+function goToday(){Y=today.getFullYear();M=today.getMonth();D=today.getDate();render();}
+
+function switchPage(p){
+  curPage=p;
+  document.getElementById('pageCal').style.display=p==='cal'?'':'none';
+  document.getElementById('pageReward').style.display=p==='reward'?'':'none';
+  document.getElementById('navCal').className='nav-item'+(p==='cal'?' active':'');
+  document.getElementById('navReward').className='nav-item'+(p==='reward'?' active':'');
+  document.getElementById('navToday').className='nav-item';
+  document.getElementById('pageScroll').scrollTop=0;
+  render();
+}
+
+// person ops
+function delPerson(i){
+  if(state.persons.length<=1){showToast('至少保留一位人員');return;}
+  if(!confirm('確定刪除「'+state.persons[i].name+'」及所有資料？'))return;
+  var p=state.persons[i].id;
+  Object.keys(state.data).forEach(function(k){if(k.indexOf(p+'_')===0)delete state.data[k];});
+  delete state.redeemLogs[p];
+  state.persons.splice(i,1);
+  if(curPerson>=state.persons.length)curPerson=state.persons.length-1;
+  saveAll();render();
+}
+function renamePerson(i){
+  var n=prompt('修改姓名：',state.persons[i].name);
+  if(!n||!n.trim())return;
+  state.persons[i].name=n.trim();saveAll();render();
+}
+function addPerson(){
+  var n=prompt('請輸入人員姓名：');
+  if(!n||!n.trim())return;
+  state.persons.push({id:'p'+uid(),name:n.trim()});
+  curPerson=state.persons.length-1;
+  saveAll();render();
+}
+
+// cal helpers
+function calHdrs(){
+  return WDAYS.map(function(d,i){
+    return '<div class="cal-hdr'+(i===0?' sun':i===6?' sat':'')+'" >'+d+'</div>';
+  }).join('');
+}
+
+// MAIN RENDER
+function render(){
+  document.getElementById('monthLabel').textContent=Y+'年'+mLbl(M);
+  if(curPage==='cal')renderCal();
+  else renderReward();
+}
+
+// ══ CAL PAGE ══
+function renderCal(){
+  var p=document.getElementById('pageCal');
+  p.innerHTML='';
+
+  // person pills (edit mode) or cards (view mode)
+  if(editMode){
+    var ptabs='<div class="ptab-scroll" id="ptabScroll">';
+    state.persons.forEach(function(ps,i){
+      ptabs+='<div class="ptab'+(i===curPerson?' active':'')+'" data-pi="'+i+'">'+
+        esc(ps.name)+
+        (state.persons.length>1?'<span class="ptab-del" data-deli="'+i+'">✕</span>':'')+
+      '</div>';
+    });
+    ptabs+='<div class="ptab" id="btnAddPerson" style="border-style:dashed">＋</div>';
+    ptabs+='</div>';
+    p.innerHTML+=ptabs;
+  }
+
+  // view person cards
+  var pcards='<div class="person-scroll">';
+  state.persons.forEach(function(ps,i){
+    var c=calcScore(ps.id,Y,M,D);
+    var pts=c&&c.scored>0?((c.total>0?'+':'')+c.total+'分'):'—';
+    var cls=c&&c.scored>0?(c.total>0?'pos':c.total<0?'neg':'neu'):'neu';
+    pcards+='<div class="pcard'+(i===curPerson?' active':'')+'" data-pi="'+i+'">'+
+      '<div class="pcard-name">'+esc(ps.name)+'</div>'+
+      '<div class="pcard-pts '+cls+'">'+pts+'</div>'+
+    '</div>';
+  });
+  pcards+='</div>';
+
+  // calendar
+  var fd=fdow(Y,M),dm=dim(Y,M),pd=dim(Y,M-1<0?11:M-1);
+  var cal='<div class="cal-card"><div class="cal-grid">'+calHdrs();
+  for(var i=0;i<fd;i++)cal+='<div class="vcell empty om"><span class="dnum">'+(pd-fd+1+i)+'</span></div>';
+  for(var d=1;d<=dm;d++){
+    var dow=(fd+d-1)%7;
+    var cls2='vcell'+(dow===0?' sun':dow===6?' sat':'');
+    if(d===D)cls2+=' sel';
+    var isT=d===today.getDate()&&M===today.getMonth()&&Y===today.getFullYear();
+    if(isT&&d!==D)cls2+=' todaymark';
+    var rows='';
+    state.persons.forEach(function(ps){
+      var c=calcScore(ps.id,Y,M,d);
+      var v=c&&c.scored>0?((c.total>0?'+':'')+c.total):'—';
+      var vc=c&&c.scored>0?(c.total>0?'pos':c.total<0?'neg':'neu'):'neu';
+      rows+='<div class="psr"><span class="psr-n">'+esc(ps.name)+'</span><span class="psr-v '+vc+'">'+v+'</span></div>';
+    });
+    cal+='<div class="'+cls2+'" data-d="'+d+'"><span class="dnum">'+d+'</span>'+rows+(isT?'<div class="today-dot"></div>':'')+'</div>';
+  }
+  var rem=(7-((fd+dm)%7))%7;
+  for(var j=1;j<=rem;j++)cal+='<div class="vcell empty om"><span class="dnum">'+j+'</span></div>';
+  cal+='</div></div>';
+
+  // day summary
+  var dcards='<div class="day-sum-row">';
+  state.persons.forEach(function(ps){
+    var c=calcScore(ps.id,Y,M,D);
+    var v=c&&c.scored>0?((c.total>0?'+':'')+c.total):'—';
+    var vc=c&&c.scored>0?(c.total>0?'pos':c.total<0?'neg':'neu'):'neu';
+    dcards+='<div class="ds-box"><div class="ds-name">'+esc(ps.name)+'</div><div class="ds-val '+vc+'">'+v+'</div></div>';
+  });
+  dcards+='</div>';
+  var daySum='<div class="day-sum-card"><div class="day-sum-title">'+Y+'年'+mLbl(M)+D+'日　積分</div>'+dcards+'</div>';
+
+  p.innerHTML+=pcards+cal+daySum;
+
+  // edit detail
+  if(editMode){
+    p.innerHTML+=buildEditDetail();
+  }
+
+  // bind calendar clicks
+  p.querySelectorAll('.vcell[data-d]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var ta=document.getElementById('remarkTA');
+      if(ta)curDD().remark=ta.value;
+      D=parseInt(this.getAttribute('data-d'));
+      renderCal();
+    });
+  });
+  // bind person card clicks
+  p.querySelectorAll('.pcard[data-pi],.ptab[data-pi]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      if(e.target.classList.contains('ptab-del'))return;
+      curPerson=parseInt(this.getAttribute('data-pi'));renderCal();
+    });
+  });
+  // del person
+  p.querySelectorAll('[data-deli]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();delPerson(parseInt(this.getAttribute('data-deli')));});
+  });
+  // add person
+  var apb=document.getElementById('btnAddPerson');
+  if(apb)apb.addEventListener('click',addPerson);
+
+  // edit bindings
+  if(editMode) bindEditDetail(p);
+}
+
+function buildEditDetail(){
+  var ps=pid(),dd=curDD();
+  var total=0,scored=0;
+  (dd.sections||[]).forEach(function(s){(s.items||[]).forEach(function(it){
+    if(it.score&&it.score!=='none'){scored++;total+=SC[it.score]||0;}
+  });});
+  var tcls=total>0?'pos':total<0?'neg':'neu';
+  var earned=totalEarned(ps),spent=totalSpent(ps),bal=balance(ps);
+
+  // stats
+  var stats='<div class="stats-bar">'+
+    '<div class="sbox"><div class="sl">今日</div><div class="sv '+tcls+'">'+(total>0?'+':'')+total+'</div></div>'+
+    '<div class="sbox"><div class="sl">累積</div><div class="sv gold">'+earned+'</div></div>'+
+    '<div class="sbox"><div class="sl">已兌</div><div class="sv neg">-'+spent+'</div></div>'+
+    '<div class="sbox"><div class="sl">餘額</div><div class="sv '+(bal>=0?'pos':'neg')+'">'+bal+'</div></div>'+
+  '</div>';
+
+  // sections
+  var shtml='';
+  (dd.sections||[]).forEach(function(sec,si){
+    var ihtml='';
+    (sec.items||[]).forEach(function(it,ii){
+      var sc=it.score||'none';
+      var pts=sc!=='none'?((SC[sc]>0?'+':'')+SC[sc]+'分'):'—';
+      var pcls=sc==='good'?'pos':sc==='bad'?'neg':'neu';
+      ihtml+='<div class="irow">'+
+        '<span class="inum">'+(ii+1)+'</span>'+
+        '<input class="iname-inp" value="'+esc(it.name)+'" data-si="'+si+'" data-ii="'+ii+'" />'+
+        '<div class="sbtngrp">'+
+          '<button class="sbtn'+(sc==='good'?' ag':'')+'" data-sc="good" data-si="'+si+'" data-ii="'+ii+'">好</button>'+
+          '<button class="sbtn'+(sc==='ok'?' ao':'')+'" data-sc="ok" data-si="'+si+'" data-ii="'+ii+'">尚可</button>'+
+          '<button class="sbtn'+(sc==='bad'?' ab':'')+'" data-sc="bad" data-si="'+si+'" data-ii="'+ii+'">不好</button>'+
+        '</div>'+
+        '<span class="ipts '+pcls+'">'+pts+'</span>'+
+        '<button class="btn-del" data-si="'+si+'" data-ii="'+ii+'">刪</button>'+
+      '</div>';
+    });
+    shtml+='<div class="section-card">'+
+      '<div class="sec-hdr">'+
+        '<input class="sec-name-inp" value="'+esc(sec.name)+'" data-si="'+si+'" />'+
+        '<div class="sec-acts">'+
+          '<button class="btn-sm" data-ai="'+si+'">＋項目</button>'+
+          '<button class="btn-sm red" data-ds="'+si+'">刪類別</button>'+
+        '</div>'+
+      '</div>'+
+      ihtml+
+    '</div>';
+  });
+
+  // add section + remark
+  var addSec='<div class="add-sec-row"><button class="btn-add-sec" id="btnAddSec">＋ 新增考核類別</button></div>';
+  var remarkCard='<div class="section-card">'+
+    '<textarea class="remark-inp" id="remarkTA" rows="3" placeholder="當日備註…">'+esc(dd.remark||'')+'</textarea>'+
+  '</div>';
+
+  // month stats
+  var dmv=dim(Y,M),mf=0,mp=0,mn=0,mt=0;
+  for(var md=1;md<=dmv;md++){
+    var c=calcScore(ps,Y,M,md);
+    if(c&&c.scored>0){mf++;mt+=c.total;if(c.total>0)mp++;else if(c.total<0)mn++;}
+  }
+  var mstats='<div class="sec-label">本月統計</div><div class="month-stats">'+
+    '<div class="ms-box"><div class="sl">已填天</div><div class="sv">'+mf+'</div></div>'+
+    '<div class="ms-box"><div class="sl">正分天</div><div class="sv pos">'+mp+'</div></div>'+
+    '<div class="ms-box"><div class="sl">負分天</div><div class="sv '+(mn>0?'neg':'')+'">'+mn+'</div></div>'+
+    '<div class="ms-box"><div class="sl">月累分</div><div class="sv '+(mt>0?'pos':mt<0?'neg':'')+'">'+(mt>0?'+':'')+mt+'</div></div>'+
+  '</div>';
+
+  return '<div class="sec-label">'+Y+'年'+mLbl(M)+D+'日　考核記錄</div>'+stats+shtml+addSec+remarkCard+mstats;
+}
+
+function bindEditDetail(container){
+  var el=container||document.getElementById('pageCal');
+
+  var abs=document.getElementById('btnAddSec');
+  if(abs)abs.addEventListener('click',function(){
+    var n=prompt('考核類別名稱：','新類別');
+    if(!n||!n.trim())return;
+    curDD().sections.push({id:uid(),name:n.trim(),items:[]});renderCal();
+  });
+
+  el.querySelectorAll('.sec-name-inp').forEach(function(c){
+    c.addEventListener('change',function(){curDD().sections[parseInt(this.getAttribute('data-si'))].name=this.value;});
+  });
+  el.querySelectorAll('[data-ai]').forEach(function(c){
+    c.addEventListener('click',function(){
+      var si=parseInt(this.getAttribute('data-ai'));
+      var n=prompt('考核項目名稱：','新項目');
+      if(!n||!n.trim())return;
+      curDD().sections[si].items.push({id:uid(),name:n.trim(),score:'none'});renderCal();
+    });
+  });
+  el.querySelectorAll('[data-ds]').forEach(function(c){
+    c.addEventListener('click',function(){
+      var si=parseInt(this.getAttribute('data-ds'));
+      if(!confirm('確定刪除類別「'+curDD().sections[si].name+'」？'))return;
+      curDD().sections.splice(si,1);renderCal();
+    });
+  });
+  el.querySelectorAll('.iname-inp').forEach(function(c){
+    c.addEventListener('change',function(){
+      curDD().sections[parseInt(this.getAttribute('data-si'))].items[parseInt(this.getAttribute('data-ii'))].name=this.value;
+    });
+  });
+  el.querySelectorAll('.sbtn').forEach(function(c){
+    c.addEventListener('click',function(){
+      var si=parseInt(this.getAttribute('data-si')),ii=parseInt(this.getAttribute('data-ii')),sc=this.getAttribute('data-sc');
+      var cur=curDD().sections[si].items[ii].score;
+      curDD().sections[si].items[ii].score=(cur===sc?'none':sc);
+      renderCal();
+    });
+  });
+  el.querySelectorAll('.btn-del').forEach(function(c){
+    c.addEventListener('click',function(){
+      var si=parseInt(this.getAttribute('data-si')),ii=parseInt(this.getAttribute('data-ii'));
+      if(!confirm('確定刪除「'+curDD().sections[si].items[ii].name+'」？'))return;
+      curDD().sections[si].items.splice(ii,1);renderCal();
+    });
+  });
+}
+
+// ══ REWARD PAGE ══
+function renderReward(){
+  var p=document.getElementById('pageReward');
+  var ps=pid();
+  var earned=totalEarned(ps),spent=totalSpent(ps),bal=balance(ps);
+
+  // person pills
+  var prow='<div class="person-scroll">';
+  state.persons.forEach(function(p2,i){
+    var b=balance(p2.id);
+    prow+='<div class="pcard'+(i===curPerson?' active':'')+'" data-rpi="'+i+'">'+
+      '<div class="pcard-name">'+esc(p2.name)+'</div>'+
+      '<div class="pcard-pts '+(b>=0?'pos':'neg')+'">'+b+'分</div>'+
+    '</div>';
+  });
+  prow+='</div>';
+
+  var bal2='<div class="bal-row">'+
+    '<div class="bal-box"><div class="bal-label">累積總分</div><div class="bal-val">'+earned+'</div></div>'+
+    '<div class="bal-box"><div class="bal-label">已兌換</div><div class="bal-val spent">-'+spent+'</div></div>'+
+    '<div class="bal-box"><div class="bal-label">可用餘額</div><div class="bal-val remain">'+bal+'</div></div>'+
+  '</div>';
+
+  var addBtn=editMode?'<button class="btn-add-rw" id="btnAddRw">＋ 新增獎勵項目</button>':'';
+  var grid='<div class="rw-grid">';
+  if(state.rewards.length===0){
+    grid+='<div style="color:var(--label);font-size:14px;grid-column:1/-1;padding:12px 0">尚無獎勵，請在編輯模式下新增</div>';
+  }
+  state.rewards.forEach(function(rw,ri){
+    if(editMode){
+      grid+='<div class="rw-card ec">'+
+        '<input class="rw-name-inp" value="'+esc(rw.name)+'" data-ri="'+ri+'" />'+
+        '<input class="rw-cost-inp" type="number" value="'+rw.cost+'" min="1" data-ri="'+ri+'" />'+
+        '<button class="btn-redeem" data-ri="'+ri+'" '+(bal<rw.cost?'disabled':'')+'>兌換 '+rw.cost+'分</button>'+
+        '<button class="btn-del-rw" data-ri="'+ri+'">刪除</button>'+
+      '</div>';
+    } else {
+      grid+='<div class="rw-card">'+
+        '<div class="rw-cname">'+esc(rw.name)+'</div>'+
+        '<div class="rw-ccost">需要 '+rw.cost+' 分</div>'+
+        '<button class="btn-redeem" data-ri="'+ri+'" '+(bal<rw.cost?'disabled':'')+'>'+
+          '兌換'+(bal<rw.cost?' ⚠️不足':'')+'</button>'+
+      '</div>';
+    }
+  });
+  grid+='</div>';
+
+  // log
+  var logs=(state.redeemLogs[ps]||[]).slice().reverse();
+  var logHtml=logs.length===0?'<div class="no-log">尚無兌換記錄</div>':
+    '<div class="log-list">'+logs.map(function(l,li){
+      var ri2=logs.length-1-li;
+      return '<div class="log-row">'+
+        '<div class="log-icon">🎁</div>'+
+        '<div class="log-info">'+
+          '<div class="log-name">'+esc(l.rewardName)+(l.qty>1?' ×'+l.qty:'')+'</div>'+
+          '<div class="log-meta">'+l.date+(l.note?' · '+esc(l.note):'')+'</div>'+
+        '</div>'+
+        '<div class="log-pts-big">-'+(l.cost*l.qty)+'</div>'+
+        (editMode?'<button class="log-del" data-li="'+ri2+'">撤銷</button>':'')+
+      '</div>';
+    }).join('')+'</div>';
+
+  p.innerHTML=prow+bal2+
+    '<div class="sec-label">獎勵項目</div>'+addBtn+grid+
+    '<div class="sec-label">兌換記錄　<span style="font-size:11px;font-weight:400;color:var(--label)">'+esc(state.persons[curPerson].name)+'</span></div>'+
+    logHtml+
+    '<div style="height:16px"></div>';
+
+  p.querySelectorAll('[data-rpi]').forEach(function(c){
+    c.addEventListener('click',function(){curPerson=parseInt(this.getAttribute('data-rpi'));renderReward();});
+  });
+  var abr=document.getElementById('btnAddRw');
+  if(abr)abr.addEventListener('click',function(){
+    var n=prompt('獎勵名稱：','新獎勵');if(!n||!n.trim())return;
+    var cost=parseInt(prompt('所需點數：','10'))||10;
+    state.rewards.push({id:'r'+uid(),name:n.trim(),cost:cost});saveAll();renderReward();
+  });
+  p.querySelectorAll('.rw-name-inp').forEach(function(c){
+    c.addEventListener('change',function(){state.rewards[parseInt(this.getAttribute('data-ri'))].name=this.value;saveAll();});
+  });
+  p.querySelectorAll('.rw-cost-inp').forEach(function(c){
+    c.addEventListener('change',function(){state.rewards[parseInt(this.getAttribute('data-ri'))].cost=parseInt(this.value)||1;saveAll();renderReward();});
+  });
+  p.querySelectorAll('.btn-del-rw').forEach(function(c){
+    c.addEventListener('click',function(){
+      var ri=parseInt(this.getAttribute('data-ri'));
+      if(!confirm('確定刪除獎勵「'+state.rewards[ri].name+'」？'))return;
+      state.rewards.splice(ri,1);saveAll();renderReward();
+    });
+  });
+  p.querySelectorAll('.btn-redeem:not([disabled])').forEach(function(c){
+    c.addEventListener('click',function(){
+      pendingRi=parseInt(this.getAttribute('data-ri'));
+      var rw=state.rewards[pendingRi];
+      document.getElementById('mTitle').textContent='兌換：'+rw.name;
+      document.getElementById('mSub').textContent='每次扣 '+rw.cost+' 分 ｜ 目前餘額 '+balance(pid())+' 分';
+      document.getElementById('mNote').value='';document.getElementById('mQty').value='1';
+      document.getElementById('redeemModal').style.display='flex';
+    });
+  });
+  p.querySelectorAll('.log-del').forEach(function(c){
+    c.addEventListener('click',function(){
+      var li=parseInt(this.getAttribute('data-li'));
+      var log=(state.redeemLogs[ps]||[])[li];
+      if(!log||!confirm('確定撤銷「'+log.rewardName+'」？'))return;
+      state.redeemLogs[ps].splice(li,1);saveAll();renderReward();
+    });
+  });
+}
+
+// redeem modal
+document.getElementById('btnMCancel').addEventListener('click',function(){document.getElementById('redeemModal').style.display='none';});
+document.getElementById('btnMOk').addEventListener('click',function(){
+  if(pendingRi<0||pendingRi>=state.rewards.length)return;
+  var rw=state.rewards[pendingRi];
+  var qty=parseInt(document.getElementById('mQty').value)||1;
+  var note=document.getElementById('mNote').value.trim();
+  var need=rw.cost*qty,bal=balance(pid());
+  if(need>bal){showToast('點數不足！餘額 '+bal+' 需要 '+need);return;}
+  var ps=pid();
+  if(!state.redeemLogs[ps])state.redeemLogs[ps]=[];
+  var now=new Date();
+  state.redeemLogs[ps].push({id:'l'+uid(),rewardName:rw.name,cost:rw.cost,qty:qty,note:note,
+    date:now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate()});
+  document.getElementById('redeemModal').style.display='none';
+  saveAll();showToast('已兌換「'+rw.name+'」扣除 '+need+' 分');renderReward();
+});
+
+// init
+loadSaved();
+render();
+</script>
+</body>
+</html>
